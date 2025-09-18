@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>개인형IRP vs 적금 비교 (모바일용)</title>
+<style>
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+       margin:0; padding:20px; background:#f0f6ff; color:#1d3557; }
+h1 { font-size:20px; font-weight:700; margin-bottom:8px; }
+label { font-size:14px; display:block; margin-top:12px; }
+input { width:100%; padding:10px; font-size:16px; border:1px solid #ccc; border-radius:8px; margin-top:4px; }
+button { margin-top:16px; padding:12px; width:100%; font-size:16px; background:#457b9d; color:white; border:none; border-radius:8px; }
+.result { margin-top:20px; padding:12px; border-radius:8px; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
+.bar-wrap { display:flex; gap:12px; margin-top:20px; }
+.bar { flex:1; text-align:center; }
+.bar-inner { background:#a8dadc; border-radius:6px; margin-bottom:6px; position:relative; height:150px; }
+.fill { background:#1d3557; width:100%; position:absolute; bottom:0; border-radius:6px; }
+.footer { margin-top:16px; font-size:12px; color:#334155; }
+.container { max-width:720px; margin:0 auto; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>개인형IRP vs 적금 비교</h1>
+
+<label>월 불입액 (원)</label>
+<input type="number" id="monthly" value="750000">
+
+<label>불입 개월수</label>
+<input type="number" id="months" value="12">
+
+<label>연 이자율 (예: 0.03 → 3%)</label>
+<input type="number" id="annual" step="0.001" value="0.03">
+
+<label>적금 이자 과세율 (예: 0.154 → 15.4%)</label>
+<input type="number" id="tax" step="0.001" value="0.154">
+
+<label>개인형IRP 세액공제율 (예: 0.132 → 13.2%)</label>
+<input type="number" id="credit" step="0.001" value="0.132">
+
+<label>개인형IRP 연 한도 (원)</label>
+<input type="number" id="cap" value="9000000">
+
+<button id="calcBtn" aria-label="계산하기">계산하기</button>
+
+<div class="result" id="result">결과가 여기에 표시됩니다.</div>
+
+<div class="bar-wrap">
+  <div class="bar">
+    <div class="bar-inner"><div id="fillSavings" class="fill" style="height:0%"></div></div>
+    <div id="valSavings">-</div>
+    <div>적금(세후)</div>
+  </div>
+  <div class="bar">
+    <div class="bar-inner"><div id="fillIRP" class="fill" style="height:0%; background:#457b9d"></div></div>
+    <div id="valIRP">-</div>
+    <div>개인형IRP</div>
+  </div>
+</div>
+
+<div class="footer">* 단순화된 가정(연 단리, 과세이연, 세액공제율·한도 고정)을 사용합니다. 실제 상품 수수료·운용성과·세법 변경에 따라 결과가 달라질 수 있습니다.</div>
+</div>
+
+<script>
+(function(){
+  function fmt(n){ return Number(n).toLocaleString('ko-KR'); }
+
+  function calc(){
+    var monthly = +document.getElementById('monthly').value;
+    var months  = +document.getElementById('months').value;
+    var annual  = +document.getElementById('annual').value;
+    var tax     = +document.getElementById('tax').value;
+    var credit  = +document.getElementById('credit').value;
+    var cap     = +document.getElementById('cap').value;
+
+    var totalDeposit = monthly*months;
+    var mr = annual/12;
+    var factor = months*(months+1)/2; // 월초 고정
+    var gross = monthly*mr*factor;
+
+    var savingsAfterTax = gross*(1-tax);
+    var irpInterest = gross;
+    var irpCredit = Math.min(totalDeposit, cap)*credit;
+
+    var savingsTotal = savingsAfterTax;
+    var irpTotal = irpInterest+irpCredit;
+    var diff = irpTotal-savingsTotal;
+
+    document.getElementById('result').innerHTML =
+      "총 납입액: <b>"+fmt(totalDeposit)+"원</b><br>"+
+      "적금(세후): "+fmt(savingsTotal.toFixed(0))+"원<br>"+
+      "IRP 합계: "+fmt(irpTotal.toFixed(0))+"원<br>"+
+      "<b>차이: "+fmt(diff.toFixed(0))+"원</b>";
+
+    document.getElementById('valSavings').innerText = fmt(savingsTotal.toFixed(0));
+    document.getElementById('valIRP').innerText = fmt(irpTotal.toFixed(0));
+
+    var maxVal = Math.max(savingsTotal, irpTotal, 1);
+    document.getElementById('fillSavings').style.height = (savingsTotal/maxVal*100)+"%";
+    document.getElementById('fillIRP').style.height = (irpTotal/maxVal*100)+"%";
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    document.getElementById('calcBtn').addEventListener('click', calc);
+    ['monthly','months','annual','tax','credit','cap'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el){ el.addEventListener('input', calc); }
+    });
+    calc(); // 초기 렌더
+  });
+})();
+</script>
+</body>
+</html>
